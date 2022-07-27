@@ -5,7 +5,7 @@ class Web extends CI_Controller {
 	const kddatatoko = 'DT001';
 
 	public function __construct(){
-		parent::__construct();
+		// parent::__construct();
 		$this->load->model('M_data_toko');
 		$this->load->model('M_produk');
 	}
