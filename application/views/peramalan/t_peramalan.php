@@ -1,4 +1,12 @@
-
+<?php
+  $prefixJenisPeramalan = 'Minggu';
+  if(isset($selectedJenisPeramalan)) {
+    if($selectedJenisPeramalan == 'harian') 
+      $prefixJenisPeramalan = 'Tanggal';      
+    if($selectedJenisPeramalan == 'bulanan')   
+      $prefixJenisPeramalan = 'Bulan';
+  }
+?>
 <div class="col-md-12" style="margin-bottom: 30px;">
   <h3>
     <center>
@@ -9,7 +17,7 @@
 
 <div class="col-md-12">
 
-  <form clas="row" action="<?php echo base_url() ?>Peramalan/generate" method="GET" name="simpanform" enctype="multipart/form-data">
+  <form clas="row" action="<?php echo base_url() ?>Peramalan/generate" method="POST" name="simpanform" enctype="multipart/form-data">
     
     <div class="form-group row">
       <label for="peramalan_data" class="col-md-2 col-sm-2 col-form-label text-right">Pilih Produk</label>
@@ -22,6 +30,24 @@
       <label for="peramalan_data" class="col-md-3 col-sm-2 col-form-label text-right">Periode Yang Diramal</label>
       <div class="col-md-3 col-sm-12">
         <input type="number" min='1' name="jumlah_periode_peramalan" id="jumlah_periode_peramalan" class="form-control" value="<?= (isset($selectedJumlahPeriodePeramalan) ? $selectedJumlahPeriodePeramalan : '1') ?>" required>
+      </div>  
+    </div>
+
+    <div class="form-group row">
+      <label for="peramalan_data" class="col-md-2 col-sm-2 col-form-label text-right">Jenis Peramalan</label>
+      <div class="col-md-2 col-sm-10">
+        <select class="form-control " id="jenis_peramalan" name="jenis_peramalan" required>
+          <option value="">--- Pilih Jenis ---</option>
+          <?php foreach ($jenis_peramalans as $key => $value) echo "<option value='$value'".(isset($selectedJenisPeramalan) && $selectedJenisPeramalan == $value ? "selected" : "").">".strtoupper($value)."</option>"; ?>
+        </select>
+      </div>
+      <label for="peramalan_data" class="col-md-2 col-sm-2 col-form-label text-right">Tgl Awal</label>
+      <div class="col-md-2 col-sm-12">
+        <input type="date" name="tgl_awal" id="tgl_awal" class="form-control" value="<?= (isset($selectedTglAwal) ? $selectedTglAwal : '') ?>">
+      </div>  
+      <label for="peramalan_data" class="col-md-2 col-sm-2 col-form-label text-right">Tgl Akhir</label>
+      <div class="col-md-2 col-sm-12">
+        <input type="date" name="tgl_akhir" id="tgl_akhir" class="form-control" value="<?= (isset($selectedTglAkhir) ? $selectedTglAkhir : '') ?>">
       </div>  
     </div>
 
@@ -64,7 +90,7 @@
   		<thead>
         <th>#</th>
   			<th>Bulan &amp; Tahun</th>
-  			<th>Minggu</th>
+  			<th><?php echo $prefixJenisPeramalan ?></th>
   			<th>Produk</th>
   			<th>Jumlah Penjualan (y)</th>
         <?= ($config->tampil_perhitungan) ? '
@@ -89,7 +115,7 @@
                   <tr>
                     <td>'.$no++.'</td>
                     <td>'.$keyPenjualanMonth.'</td>
-                    <td> Minggu ke-'.$key.'</td>
+                    <td>'.$prefixJenisPeramalan.' '.$key.'</td>
                     <td>'.$penjualan->nm_produk.'</td>
                     <td>'.$penjualan->y.'</td>'.
                     ($config->tampil_perhitungan ? '
@@ -110,7 +136,7 @@
                   <tr>
                     <td>'.$no++.'</td>
                     <td>'.date('F Y', DateTime::createFromFormat('!Y-m', trim($keyPenjualanMonth))->getTimestamp()).'</td>
-                    <td> Minggu ke-'.$key.'</td>
+                    <td>'.$prefixJenisPeramalan.' '.$key.'</td>
                     <td>'.$penjualan->nm_produk.'</td>
                     <td>'.$penjualan->y.'</td>'.
                     ($config->tampil_perhitungan ? '

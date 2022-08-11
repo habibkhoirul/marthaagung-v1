@@ -43,7 +43,7 @@ class M_penjualan extends CI_Model {
 		$this->db->join('produk', 'detail_penjualan.kd_produk = produk.kd_produk');
 		if(!empty($filter)) {
 			foreach ($filter as $key => $value) {
-				$this->db->where($key.'="'.$value.'"');
+				$this->db->where($key.'"'.$value.'"');
 			}
 		}
 		$result = $this->db->get();

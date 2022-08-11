@@ -36,6 +36,7 @@ $config['base_url'] = '/MarthaAgung.com';
 |
 */
 $config['index_page'] = 'index.php';
+// $config['index_page'] = '';
 
 /*
 |--------------------------------------------------------------------------

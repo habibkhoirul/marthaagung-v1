@@ -20,6 +20,7 @@ class Peramalan extends CI_Controller {
 		$plugin['select2'] = 1;
 		$data['produks'] = $this->M_produk->getproduk();
 		$data['config'] = $this->M_data_toko->getdatatoko('DT001')->row();
+		$data['jenis_peramalans'] = ['harian', 'mingguan', 'bulanan'];
 
 		$this->load->view('dashboard-header',$menu);
 		$this->load->view('peramalan/t_peramalan', $data);
@@ -27,8 +28,12 @@ class Peramalan extends CI_Controller {
 	}
 
 	public function generate(){
-		if(!$kd_produk = $this->input->get('kd_produk')) return redirect('Peramalan');
-		if(!$jumlah_periode_peramalan = $this->input->get('jumlah_periode_peramalan')) return redirect('Peramalan');
+		if(!$kd_produk = $this->input->post('kd_produk')) return redirect('Peramalan');
+		if(!$jumlah_periode_peramalan = $this->input->post('jumlah_periode_peramalan')) return redirect('Peramalan');
+		if(!$jenis_peramalan = $this->input->post('jenis_peramalan')) return redirect('Peramalan');
+
+		$tgl_awal = ("" != $this->input->post('tgl_awal')) ? $this->input->post('tgl_awal') : null;
+		$tgl_akhir = ("" != $this->input->post('tgl_akhir')) ? $this->input->post('tgl_akhir') : null;
 
 		$data['config'] = $this->M_data_toko->getdatatoko('DT001')->row();
 
@@ -38,12 +43,39 @@ class Peramalan extends CI_Controller {
 		$plugin['tabel_plugin'] = 1;
 		$plugin['select2'] = 1;
 		$data['produks'] = $this->M_produk->getproduk();
-		$penjualans = $this->M_penjualan->getFullData(['detail_penjualan.kd_produk' => $kd_produk]);
+
+		if(!is_null($tgl_awal) && !is_null($tgl_akhir)) 
+			$penjualans = $this->M_penjualan->getFullData([
+				'detail_penjualan.kd_produk=' => $kd_produk,
+				'penjualan.tgl_penjualan>=' => $tgl_awal,
+				'penjualan.tgl_penjualan<=' => $tgl_akhir
+			]);
+		else if(is_null($tgl_awal) && !is_null($tgl_akhir)) 
+			$penjualans = $this->M_penjualan->getFullData([
+				'detail_penjualan.kd_produk=' => $kd_produk,
+				'penjualan.tgl_penjualan<=' => $tgl_akhir
+			]);
+		else if(!is_null($tgl_awal) && is_null($tgl_akhir)) 
+			$penjualans = $this->M_penjualan->getFullData([
+				'detail_penjualan.kd_produk=' => $kd_produk,
+				'penjualan.tgl_penjualan>=' => $tgl_awal
+			]);
+		else 
+			$penjualans = $this->M_penjualan->getFullData([
+				'detail_penjualan.kd_produk=' => $kd_produk
+			]);
+
 		$data['selectedProduk'] = $kd_produk;
+		$data['selectedJenisPeramalan'] = $jenis_peramalan;
+		$data['selectedTglAwal'] = $tgl_awal;
+		$data['selectedTglAkhir'] = $tgl_akhir;
 		$data['selectedJumlahPeriodePeramalan'] = $jumlah_periode_peramalan;
+		$data['jenis_peramalans'] = ['harian', 'mingguan', 'bulanan'];
+
 		$use_indeks_musim = $this->M_data_toko->getdatatoko('DT001')->row()->indeks_musim;
-		$penjualans = $this->getWeeklySales($penjualans);
+		$penjualans = $this->getWeeklySales($penjualans, $jenis_peramalan);
 		$penjualans = $this->formatData($penjualans);
+		// echo "<pre>";var_dump($penjualans);die;
 		$trendMomentResults = array();
 		for ($i = 1; $i <=$jumlah_periode_peramalan; $i++) {
 
@@ -69,11 +101,16 @@ class Peramalan extends CI_Controller {
 
 	}
 
-	private function getWeeklySales($data) {
+	private function getWeeklySales($data, $jenis = 'mingguan') {
 		if(!is_array($data) || empty($data)) return false;
+
+		if($jenis == 'harian') $pembagi = 1;
+		else if($jenis == 'bulanan') $pembagi = 30;
+		else $pembagi = 7;
+
 		$result = array();
 		foreach ($data as $key => $value) {
-			$currentWeek = ceil((intval(substr($value->tgl_penjualan, -2, 2))) / 7);
+			$currentWeek = ceil((intval(substr($value->tgl_penjualan, -2, 2))) / $pembagi);
 			if(isset($result[substr($value->tgl_penjualan,0,-3)][$currentWeek])) {
 				$result[substr($value->tgl_penjualan,0,-3)][$currentWeek]->jumlah += $value->jumlah;
 			} else {
@@ -121,15 +158,14 @@ class Peramalan extends CI_Controller {
 		$ratarata->xy = round($jumlah->xy  / $jumlah->periode, 2);
 		$ratarata->xkuadrat = round($jumlah->xkuadrat  / $jumlah->periode, 2);
 		
-		$indexMusim = $penjualans[array_key_first($penjualans)][1]->y / $ratarata->y;
+		// $indexMusim = $penjualans[array_key_first($penjualans)][1]->y / $ratarata->y;
+		$indexMusim = $penjualans[array_key_first($penjualans)][array_key_first($penjualans[array_key_first($penjualans)])]->y / $ratarata->y;
 		$result = array(
 			'data' => $penjualans,
 			'jumlah' => $jumlah,
 			'ratarata' => $ratarata,
 			'indexMusim' => $indexMusim
 		);
-
-		// print_r($indexMusim);
 
 		return $result;
 	}
@@ -173,7 +209,9 @@ class Peramalan extends CI_Controller {
 			$hasilPersamaan['y_bintang'] = round($hasilPersamaan['y_utama'], 2); 
 
 		//menambahkan hasil permalan ke dalam array
-		$lastData = $data['data'][array_key_last($data['data'])][count($data['data'][array_key_last($data['data'])])];
+		$lastData = $data['data'][array_key_last($data['data'])][array_key_last($data['data'][array_key_last($data['data'])])];
+		// $lastData = $data['data'][array_key_last($data['data'])][count($data['data'][array_key_last($data['data'])])];
+		
 		$newData = $data;
 		$newPeriode = $data['jumlah']->periode + 1;
 		$newData['data'][$this->periodeKey.($newPeriode - 1)] = array();
@@ -224,22 +262,22 @@ class Peramalan extends CI_Controller {
 	}
 
 	function weekOfMonth($date) {
-    // estract date parts
-    list($y, $m, $d) = explode('-', date('Y-m-d', strtotime($date)));
-    
-    // current week, min 1
-    $w = 1;
-    
-    // for each day since the start of the month
-    for ($i = 1; $i < $d; ++$i) {
-        // if that day was a sunday and is not the first day of month
-        if ($i > 1 && date('w', strtotime("$y-$m-$i")) == 0) {
-            // increment current week
-            ++$w;
-        }
-    }
-    
-    // now return
-    return $w;
+		// estract date parts
+		list($y, $m, $d) = explode('-', date('Y-m-d', strtotime($date)));
+		
+		// current week, min 1
+		$w = 1;
+		
+		// for each day since the start of the month
+		for ($i = 1; $i < $d; ++$i) {
+			// if that day was a sunday and is not the first day of month
+			if ($i > 1 && date('w', strtotime("$y-$m-$i")) == 0) {
+				// increment current week
+				++$w;
+			}
+		}
+		
+		// now return
+		return $w;
 	}
 }
