@@ -75,10 +75,10 @@ $query_builder = TRUE;
 
 $db['default'] = array(
 	'dsn'	=> '',
-	'hostname' => 'localhost', //ganti dengan 'localhost'
-	'username' => 'root', 
-	'password' => '', //ganti dengan ''
-	'database' => 'habibmart',
+	'hostname' => 'srv148.niagahoster.com', //ganti dengan 'localhost'
+	'username' => 'u1705750_marthaagung', 
+	'password' => '(oxTb_a{7s*5', //ganti dengan ''
+	'database' => 'u1705750_marthaagung',
 	'dbdriver' => 'mysqli',
 	'dbprefix' => '',
 	'pconnect' => FALSE,
